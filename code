@@ -1,0 +1,127 @@
+#include <Servo.h> // Include standard servo library
+
+// Ultrasonic Sensor Pins
+const int trigPin = 9;
+const int echoPin = 8;
+
+// L298N Motor Control Pins
+const int IN1 = 4;
+const int IN2 = 5;
+const int IN3 = 6;
+const int IN4 = 7;
+
+Servo myServo; // Create a servo object
+const int safetyDistance = 25; // Stop if obstacle is within 25cm
+
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  
+  myServo.attach(10); // Servo signal pin connected to digital pin 10
+  myServo.write(90);  // Look straight ahead initially
+  delay(500);
+}
+
+void loop() {
+  int distanceFront = readDistance();
+
+  if (distanceFront > safetyDistance || distanceFront == 0) {
+    moveForward();
+  } else {
+    stopRobot();
+    delay(200);
+    
+    // Look around to find a better path
+    int distanceRight = lookRight();
+    delay(300);
+    int distanceLeft = lookLeft();
+    delay(300);
+
+    if (distanceRight >= distanceLeft) {
+      moveBackward();
+      delay(400);
+      stopRobot();
+      turnRight();
+      delay(500); // Adjust time based on floor friction for a clean 90-degree turn
+    } else {
+      moveBackward();
+      delay(400);
+      stopRobot();
+      turnLeft();
+      delay(500);
+    }
+    stopRobot();
+    delay(200);
+  }
+  delay(50);
+}
+
+// Function to calculate exact distance using ultrasonic soundwaves
+int readDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH);
+  int distance = (duration * 0.034) / 2;
+  return distance;
+}
+
+// Servo scanning behaviors
+int lookRight() {
+  myServo.write(20);
+  delay(500);
+  int distance = readDistance();
+  myServo.write(90); // Return center
+  return distance;
+}
+
+int lookLeft() {
+  myServo.write(160);
+  delay(500);
+  int distance = readDistance();
+  myServo.write(90); // Return center
+  return distance;
+}
+
+// Low-level motor driving states
+void moveForward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void moveBackward() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void turnRight() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void turnLeft() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void stopRobot() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
